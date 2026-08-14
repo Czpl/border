@@ -5,13 +5,14 @@ interface DropzoneProps {
   dragOver: boolean
   onDragOver: (over: boolean) => void
   onFile: (file: File | null) => void
+  className?: string
 }
 
-export function Dropzone({ source, dragOver, onDragOver, onFile }: DropzoneProps) {
+export function Dropzone({ source, dragOver, onDragOver, onFile, className }: DropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   return (
     <section
-      className={`dropzone ${dragOver ? 'dropzone--over' : ''}`}
+      className={`dropzone ${dragOver ? 'dropzone--over' : ''} ${className ?? ''}`}
       onDragOver={(e) => {
         e.preventDefault()
         onDragOver(true)

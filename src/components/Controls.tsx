@@ -39,6 +39,8 @@ export function Controls({
 }: ControlsProps) {
   const show = (name: ControlTab) => !tab || tab === name
 
+  const radioName = (base: string) => `${base}-${tab ?? 'all'}`
+
   const activePresetId = PRESETS.find(
     (p) =>
       p.width === options.width &&
@@ -59,7 +61,7 @@ export function Controls({
               <label className="radio" key={p.id}>
                 <input
                   type="radio"
-                  name="preset"
+                  name={radioName('preset')}
                   checked={activePresetId === p.id}
                   onChange={() => applyPreset(p)}
                 />
@@ -104,7 +106,7 @@ export function Controls({
             <label className="radio">
               <input
                 type="radio"
-                name="aspect"
+                name={radioName('aspect')}
                 checked={options.aspect === 'original'}
                 onChange={() => update('aspect', 'original')}
               />
@@ -113,7 +115,7 @@ export function Controls({
             <label className="radio">
               <input
                 type="radio"
-                name="aspect"
+                name={radioName('aspect')}
                 checked={options.aspect === 'square'}
                 onChange={() => update('aspect', 'square')}
               />
@@ -122,11 +124,20 @@ export function Controls({
             <label className="radio">
               <input
                 type="radio"
-                name="aspect"
+                name={radioName('aspect')}
                 checked={options.aspect === 'instagram'}
                 onChange={() => update('aspect', 'instagram')}
               />
               Instagram vertical (4:5)
+            </label>
+            <label className="radio">
+              <input
+                type="radio"
+                name={radioName('aspect')}
+                checked={options.aspect === 'story'}
+                onChange={() => update('aspect', 'story')}
+              />
+              Instagram story (9:16)
             </label>
           </fieldset>
 
@@ -135,7 +146,7 @@ export function Controls({
             <label className="radio">
               <input
                 type="radio"
-                name="placement"
+                name={radioName('placement')}
                 checked={options.placement === 'outer'}
                 onChange={() => update('placement', 'outer')}
               />
@@ -144,7 +155,7 @@ export function Controls({
             <label className="radio">
               <input
                 type="radio"
-                name="placement"
+                name={radioName('placement')}
                 checked={options.placement === 'inner'}
                 onChange={() => update('placement', 'inner')}
               />

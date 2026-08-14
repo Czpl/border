@@ -307,3 +307,23 @@ header p {
     gap: 18px;
   }
 }
+
+@media (max-width: 820px) {
+  .dropzone--has-image {
+    display: none;
+  }
+}
+
+.replace {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.replace:hover {
+  border-color: var(--accent);
+}

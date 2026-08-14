@@ -147,6 +147,7 @@ function App() {
         dragOver={dragOver}
         onDragOver={setDragOver}
         onFile={handleFile}
+        className={source ? 'dropzone--has-image' : ''}
       />
 
       {error && <p className="error">{error}</p>}
@@ -189,6 +190,7 @@ function App() {
             applyPreset={applyPreset}
             cameraSegments={cameraSegments}
             onDownload={handleDownload}
+            onFile={handleFile}
             size={size}
           />
         </div>

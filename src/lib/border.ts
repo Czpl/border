@@ -1,6 +1,6 @@
 export type Placement = 'outer' | 'inner'
 
-export type AspectRatio = 'original' | 'square' | 'instagram'
+export type AspectRatio = 'original' | 'square' | 'instagram' | 'story'
 
 export type InfoFontFamily = 'sans' | 'serif' | 'mono'
 
@@ -41,6 +41,7 @@ const MAX_PIXEL_DIMENSION = 8192
 const ASPECT_RATIOS: Record<Exclude<AspectRatio, 'original'>, number> = {
   square: 1,
   instagram: 4 / 5,
+  story: 9 / 16,
 }
 
 function computeScale(canvasW: number, canvasH: number, limits?: RenderLimits) {

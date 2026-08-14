@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import type { BorderOptions } from '../lib/border'
 import {
   Controls,
@@ -25,6 +26,7 @@ interface MobileDrawerProps {
   applyPreset: ApplyPreset
   cameraSegments: string[] | null
   onDownload: () => void
+  onFile: (file: File | null) => void
   size: { width: number; height: number } | null
 }
 
@@ -39,8 +41,10 @@ export function MobileDrawer({
   applyPreset,
   cameraSegments,
   onDownload,
+  onFile,
   size,
 }: MobileDrawerProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
   return (
     <div className="mobile-drawer">
       <nav className="tabs">
@@ -83,6 +87,23 @@ export function MobileDrawer({
           <button type="button" className="download" onClick={onDownload}>
             Download PNG
           </button>
+          <button
+            type="button"
+            className="replace"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Replace image
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              onFile(e.target.files?.[0] ?? null)
+              e.target.value = ''
+            }}
+          />
           {size && (
             <p className="size">
               Output: {size.width} × {size.height}px
