@@ -139,7 +139,7 @@ function App() {
           <img src={logo} alt="Border logo" className="logo" />
           Border
         </h1>
-        <p>Add a border to an image — everything runs locally in your browser.</p>
+        <p>Add a border to an image  (everything runs locally in your browser)</p>
       </header>
 
       <Dropzone
