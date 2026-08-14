@@ -15,7 +15,6 @@ export interface SecondBorder {
 export interface BorderOptions {
   width: number
   color: string
-  radius: number
   placement: Placement
   aspect: AspectRatio
   second: SecondBorder
@@ -42,23 +41,6 @@ const MAX_PIXEL_DIMENSION = 8192
 const ASPECT_RATIOS: Record<Exclude<AspectRatio, 'original'>, number> = {
   square: 1,
   instagram: 4 / 5,
-}
-
-function traceRoundedRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-) {
-  const radius = Math.max(0, Math.min(r, w / 2, h / 2))
-  ctx.moveTo(x + radius, y)
-  ctx.arcTo(x + w, y, x + w, y + h, radius)
-  ctx.arcTo(x + w, y + h, x, y + h, radius)
-  ctx.arcTo(x, y + h, x, y, radius)
-  ctx.arcTo(x, y, x + w, y, radius)
-  ctx.closePath()
 }
 
 function computeScale(canvasW: number, canvasH: number, limits?: RenderLimits) {
@@ -146,7 +128,7 @@ export function renderBorder(
   limits?: RenderLimits,
   segments?: string[] | null,
 ): RenderedImage {
-  const { width: widthPercent, color, radius, placement, aspect, second } = options
+  const { width: widthPercent, color, placement, aspect, second } = options
   const imgW = image.naturalWidth
   const imgH = image.naturalHeight
   const borderPx = Math.round(Math.min(imgW, imgH) * (widthPercent / 100))
@@ -197,73 +179,46 @@ export function renderBorder(
 
   if (placement === 'outer') {
     ctx.beginPath()
-    traceRoundedRect(ctx, 0, 0, contentW, contentH, radius)
+    ctx.rect(0, 0, contentW, contentH)
     ctx.fillStyle = color
     ctx.fill()
 
     if (secondPx > 0) {
       ctx.beginPath()
-      traceRoundedRect(
-        ctx,
-        borderPx,
-        borderPx,
-        imgW + 2 * secondPx,
-        imgH + 2 * secondPx,
-        Math.max(0, radius - borderPx),
-      )
-      traceRoundedRect(
-        ctx,
-        totalPx,
-        totalPx,
-        imgW,
-        imgH,
-        Math.max(0, radius - totalPx),
-      )
+      ctx.rect(borderPx, borderPx, imgW + 2 * secondPx, imgH + 2 * secondPx)
+      ctx.rect(totalPx, totalPx, imgW, imgH)
       ctx.fillStyle = second.color
       ctx.fill('evenodd')
     }
 
-    ctx.save()
-    ctx.beginPath()
-    traceRoundedRect(ctx, totalPx, totalPx, imgW, imgH, Math.max(0, radius - totalPx))
-    ctx.clip()
     ctx.drawImage(image, totalPx, totalPx, imgW, imgH)
-    ctx.restore()
   } else {
     const innerX = totalPx
     const innerY = totalPx
     const innerW = imgW - 2 * totalPx
     const innerH = imgH - 2 * totalPx
-    const innerR = Math.max(0, radius - totalPx)
 
     if (innerW <= 0 || innerH <= 0) {
       throw new Error('Border width exceeds image dimensions')
     }
 
-    ctx.save()
-    ctx.beginPath()
-    traceRoundedRect(ctx, 0, 0, contentW, contentH, radius)
-    ctx.clip()
     ctx.drawImage(image, 0, 0, imgW, imgH)
-    ctx.restore()
 
     ctx.beginPath()
-    traceRoundedRect(ctx, 0, 0, contentW, contentH, radius)
-    traceRoundedRect(ctx, borderPx, borderPx, contentW - 2 * borderPx, contentH - 2 * borderPx, Math.max(0, radius - borderPx))
+    ctx.rect(0, 0, contentW, contentH)
+    ctx.rect(borderPx, borderPx, contentW - 2 * borderPx, contentH - 2 * borderPx)
     ctx.fillStyle = color
     ctx.fill('evenodd')
 
     if (secondPx > 0) {
       ctx.beginPath()
-      traceRoundedRect(
-        ctx,
+      ctx.rect(
         borderPx,
         borderPx,
         contentW - 2 * borderPx,
         contentH - 2 * borderPx,
-        Math.max(0, radius - borderPx),
       )
-      traceRoundedRect(ctx, innerX, innerY, innerW, innerH, innerR)
+      ctx.rect(innerX, innerY, innerW, innerH)
       ctx.fillStyle = second.color
       ctx.fill('evenodd')
     }

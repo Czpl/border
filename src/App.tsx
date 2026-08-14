@@ -14,6 +14,7 @@ import { useDebouncedValue } from './hooks/useDebouncedValue'
 import { Controls, type ControlTab } from './components/Controls'
 import { Dropzone } from './components/Dropzone'
 import { MobileDrawer } from './components/MobileDrawer'
+import type { BorderPreset } from './lib/config'
 
 function App() {
   const [source, setSource] = useState<string | null>(null)
@@ -122,6 +123,15 @@ function App() {
     setOptions((prev) => ({ ...prev, second: { ...prev.second, [key]: value } }))
   }
 
+  const applyPreset = (preset: BorderPreset) => {
+    setOptions((prev) => ({
+      ...prev,
+      width: preset.width,
+      color: preset.color,
+      second: { ...preset.second },
+    }))
+  }
+
   return (
     <main className="app">
       <header>
@@ -148,6 +158,7 @@ function App() {
               options={options}
               update={update}
               updateSecond={updateSecond}
+              applyPreset={applyPreset}
               cameraSegments={cameraSegments}
             />
             <button type="button" className="download" onClick={handleDownload}>
@@ -175,6 +186,7 @@ function App() {
             options={options}
             update={update}
             updateSecond={updateSecond}
+            applyPreset={applyPreset}
             cameraSegments={cameraSegments}
             onDownload={handleDownload}
             size={size}

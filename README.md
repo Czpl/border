@@ -8,7 +8,6 @@ A local-first tool for adding borders to images. Everything runs in your browser
 - Border width as a percentage of the image's shortest side (1-30%)
 - Border color picker
 - Optional second border nested inside the first
-- Corner radius with rounded corners
 - Outer placement (expands the canvas) or inner placement (overlays the image)
 - Output aspect ratios: original, square (1:1), and Instagram vertical (4:5)
 - Read EXIF data (camera, aperture, shutter speed, ISO) and render it on the border

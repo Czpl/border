@@ -3,16 +3,49 @@ import type { BorderOptions, InfoAlign, InfoFontFamily } from './border'
 export const DEFAULTS: BorderOptions = {
   width: 10,
   color: '#ffffff',
-  radius: 0,
   placement: 'outer',
   aspect: 'original',
-  second: { enabled: false, width: 5, color: '#000000' },
+  second: { enabled: false, width: 1, color: '#000000' },
   showInfo: false,
   infoFontSize: 50,
-  infoFontFamily: 'sans',
+  infoFontFamily: 'mono',
   infoSeparator: '|',
   infoAlign: 'center',
 }
+
+export type BorderPresetId = 'default' | 'classic' | 'classic-inverted'
+
+export interface BorderPreset {
+  id: BorderPresetId
+  label: string
+  width: number
+  color: string
+  second: { enabled: boolean; width: number; color: string }
+}
+
+export const PRESETS: BorderPreset[] = [
+  {
+    id: 'default',
+    label: 'Default',
+    width: 10,
+    color: '#ffffff',
+    second: { enabled: false, width: 1, color: '#000000' },
+  },
+  {
+    id: 'classic',
+    label: 'Classic',
+    width: 10,
+    color: '#ffffff',
+    second: { enabled: true, width: 1, color: '#000000' },
+  },
+  {
+    id: 'classic-inverted',
+    label: 'Classic inverted',
+    width: 10,
+    color: '#000000',
+    second: { enabled: true, width: 1, color: '#ffffff' },
+  },
+]
 
 export const RENDER_DEBOUNCE_MS = 150
 export const PREVIEW_MAX_DIMENSION = 1600

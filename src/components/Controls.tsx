@@ -1,4 +1,5 @@
-import { ALIGNS, FONT_FAMILIES, SEPARATORS } from '../lib/config'
+import { ALIGNS, FONT_FAMILIES, PRESETS, SEPARATORS } from '../lib/config'
+import type { BorderPreset } from '../lib/config'
 import type {
   BorderOptions,
   InfoFontFamily,
@@ -17,10 +18,13 @@ export type UpdateSecond = <K extends keyof SecondBorder>(
   value: SecondBorder[K],
 ) => void
 
+export type ApplyPreset = (preset: BorderPreset) => void
+
 interface ControlsProps {
   options: BorderOptions
   update: UpdateOption
   updateSecond: UpdateSecond
+  applyPreset: ApplyPreset
   cameraSegments: string[] | null
   tab?: ControlTab
 }
@@ -29,15 +33,40 @@ export function Controls({
   options,
   update,
   updateSecond,
+  applyPreset,
   cameraSegments,
   tab,
 }: ControlsProps) {
   const show = (name: ControlTab) => !tab || tab === name
+
+  const activePresetId = PRESETS.find(
+    (p) =>
+      p.width === options.width &&
+      p.color.toLowerCase() === options.color.toLowerCase() &&
+      p.second.enabled === options.second.enabled &&
+      p.second.width === options.second.width &&
+      p.second.color.toLowerCase() === options.second.color.toLowerCase(),
+  )?.id
+
   return (
     <>
       {show('border') && (
         <div className="controls-section">
           <h2 className="controls-heading">Border</h2>
+          <fieldset className="control">
+            <legend>Preset</legend>
+            {PRESETS.map((p) => (
+              <label className="radio" key={p.id}>
+                <input
+                  type="radio"
+                  name="preset"
+                  checked={activePresetId === p.id}
+                  onChange={() => applyPreset(p)}
+                />
+                {p.label}
+              </label>
+            ))}
+          </fieldset>
           <label className="control">
             <span>Border width</span>
             <span className="row">
@@ -61,20 +90,6 @@ export function Controls({
                 onChange={(e) => update('color', e.target.value)}
               />
               <code>{options.color}</code>
-            </span>
-          </label>
-
-          <label className="control">
-            <span>Corner radius</span>
-            <span className="row">
-              <input
-                type="range"
-                min={0}
-                max={300}
-                value={options.radius}
-                onChange={(e) => update('radius', Number(e.target.value))}
-              />
-              <output>{options.radius}px</output>
             </span>
           </label>
 

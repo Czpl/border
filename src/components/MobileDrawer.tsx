@@ -1,5 +1,11 @@
 import type { BorderOptions } from '../lib/border'
-import { Controls, type ControlTab, type UpdateOption, type UpdateSecond } from './Controls'
+import {
+  Controls,
+  type ApplyPreset,
+  type ControlTab,
+  type UpdateOption,
+  type UpdateSecond,
+} from './Controls'
 
 const TABS: { id: ControlTab; label: string }[] = [
   { id: 'border', label: 'Border' },
@@ -16,6 +22,7 @@ interface MobileDrawerProps {
   options: BorderOptions
   update: UpdateOption
   updateSecond: UpdateSecond
+  applyPreset: ApplyPreset
   cameraSegments: string[] | null
   onDownload: () => void
   size: { width: number; height: number } | null
@@ -29,6 +36,7 @@ export function MobileDrawer({
   options,
   update,
   updateSecond,
+  applyPreset,
   cameraSegments,
   onDownload,
   size,
@@ -68,6 +76,7 @@ export function MobileDrawer({
             options={options}
             update={update}
             updateSecond={updateSecond}
+            applyPreset={applyPreset}
             cameraSegments={cameraSegments}
             tab={tab}
           />
