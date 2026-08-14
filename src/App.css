@@ -201,6 +201,7 @@ header p {
   padding: 24px;
   display: flex;
   justify-content: center;
+  align-items: center;
   overflow: auto;
   min-height: 320px;
 }
@@ -209,6 +210,7 @@ header p {
   .preview {
     position: sticky;
     top: 24px;
+    height: calc(100svh - 48px);
     max-height: calc(100svh - 48px);
   }
 }
@@ -219,6 +221,12 @@ header p {
   width: auto;
   height: auto;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+@media (min-width: 821px) {
+  .preview canvas {
+    max-height: 100%;
+  }
 }
 
 .hint {
