@@ -55,7 +55,7 @@ export function MobileDrawer({
           onClick={onToggleOpen}
         >
           <svg
-            className={`tabs__chevron ${open ? 'tabs__chevron--up' : ''}`}
+            className={`tabs__chevron ${open ? '' : 'tabs__chevron--up'}`}
             viewBox="0 0 16 16"
             width="16"
             height="16"
