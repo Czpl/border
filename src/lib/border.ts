@@ -2,6 +2,10 @@ export type Placement = 'outer' | 'inner'
 
 export type AspectRatio = 'original' | 'square' | 'instagram'
 
+export type InfoFontFamily = 'sans' | 'serif' | 'mono'
+
+export type InfoAlign = 'center' | 'left' | 'right' | 'space'
+
 export interface SecondBorder {
   enabled: boolean
   width: number
@@ -15,6 +19,11 @@ export interface BorderOptions {
   placement: Placement
   aspect: AspectRatio
   second: SecondBorder
+  showInfo: boolean
+  infoFontSize: number
+  infoFontFamily: InfoFontFamily
+  infoSeparator: string
+  infoAlign: InfoAlign
 }
 
 export interface RenderedImage {
@@ -63,10 +72,79 @@ function computeScale(canvasW: number, canvasH: number, limits?: RenderLimits) {
   return scale
 }
 
+function textColorFor(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? '#1a1a1a' : '#ffffff'
+}
+
+const FONT_FAMILIES: Record<InfoFontFamily, string> = {
+  sans: 'system-ui, -apple-system, Segoe UI, sans-serif',
+  serif: 'Georgia, "Times New Roman", serif',
+  mono: 'ui-monospace, SF Mono, Menlo, monospace',
+}
+
+function drawInfoText(
+  ctx: CanvasRenderingContext2D,
+  contentW: number,
+  contentH: number,
+  borderPx: number,
+  segments: string[],
+  options: BorderOptions,
+  textColor: string,
+) {
+  const maxWidth = contentW - 2 * borderPx
+  const family = FONT_FAMILIES[options.infoFontFamily]
+  const fontSize = Math.max(10, borderPx * (options.infoFontSize / 100))
+  const joined = segments.join(` ${options.infoSeparator} `)
+
+  const applyFont = (size: number) => {
+    ctx.font = `500 ${size}px ${family}`
+    return ctx.measureText(joined).width
+  }
+  let fontPx = fontSize
+  let width = applyFont(fontPx)
+  if (width > maxWidth && width > 0) {
+    fontPx = Math.floor((maxWidth / width) * fontPx)
+    width = applyFont(fontPx)
+    if (width > maxWidth) {
+      fontPx = Math.floor((maxWidth / width) * fontPx)
+      applyFont(fontPx)
+    }
+  }
+
+  ctx.fillStyle = textColor
+  ctx.textBaseline = 'middle'
+  const midY = contentH - borderPx / 2
+
+  if (options.infoAlign === 'space') {
+    const widths = segments.map((s) => ctx.measureText(s).width)
+    const total = widths.reduce((a, b) => a + b, 0)
+    const gap = segments.length > 1 ? (maxWidth - total) / (segments.length - 1) : 0
+    let x = (contentW - (total + gap * (segments.length - 1))) / 2
+    ctx.textAlign = 'left'
+    segments.forEach((s, i) => {
+      ctx.fillText(s, x, midY)
+      x += widths[i] + gap
+    })
+  } else {
+    ctx.textAlign = options.infoAlign
+    const x =
+      options.infoAlign === 'left'
+        ? borderPx
+        : options.infoAlign === 'right'
+          ? contentW - borderPx
+          : contentW / 2
+    ctx.fillText(joined, x, midY)
+  }
+}
+
 export function renderBorder(
   image: HTMLImageElement,
   options: BorderOptions,
   limits?: RenderLimits,
+  segments?: string[] | null,
 ): RenderedImage {
   const { width: widthPercent, color, radius, placement, aspect, second } = options
   const imgW = image.naturalWidth
@@ -145,10 +223,12 @@ export function renderBorder(
       ctx.fill('evenodd')
     }
 
+    ctx.save()
     ctx.beginPath()
     traceRoundedRect(ctx, totalPx, totalPx, imgW, imgH, Math.max(0, radius - totalPx))
     ctx.clip()
     ctx.drawImage(image, totalPx, totalPx, imgW, imgH)
+    ctx.restore()
   } else {
     const innerX = totalPx
     const innerY = totalPx
@@ -187,6 +267,18 @@ export function renderBorder(
       ctx.fillStyle = second.color
       ctx.fill('evenodd')
     }
+  }
+
+  if (segments && segments.length > 0 && borderPx > 0) {
+    drawInfoText(
+      ctx,
+      contentW,
+      contentH,
+      borderPx,
+      segments,
+      options,
+      textColorFor(color),
+    )
   }
 
   return { canvas, width: canvasW, height: canvasH }

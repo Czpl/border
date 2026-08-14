@@ -1,196 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
+import exifr from 'exifr'
 import './App.css'
+import logo from './assets/logo.svg'
 import { renderBorder, type BorderOptions, type SecondBorder } from './lib/border'
-
-const DEFAULTS: BorderOptions = {
-  width: 10,
-  color: '#ffffff',
-  radius: 0,
-  placement: 'outer',
-  aspect: 'original',
-  second: { enabled: false, width: 1, color: '#000000' },
-}
-
-const RENDER_DEBOUNCE_MS = 150
-const PREVIEW_MAX_DIMENSION = 1600
-const EXPORT_MAX_DIMENSION = 8192
-
-type ControlTab = 'border' | 'layout' | 'second'
-
-const TABS: { id: ControlTab; label: string }[] = [
-  { id: 'border', label: 'Border' },
-  { id: 'layout', label: 'Layout' },
-  { id: 'second', label: 'Second' },
-]
-
-interface ControlsProps {
-  options: BorderOptions
-  update: <K extends keyof BorderOptions>(key: K, value: BorderOptions[K]) => void
-  updateSecond: <K extends keyof SecondBorder>(key: K, value: SecondBorder[K]) => void
-  tab?: ControlTab
-}
-
-function Controls({ options, update, updateSecond, tab }: ControlsProps) {
-  const show = (name: ControlTab) => !tab || tab === name
-  return (
-    <>
-      {show('border') && (
-        <>
-          <label className="control">
-            <span>Border width</span>
-            <span className="row">
-              <input
-                type="range"
-                min={1}
-                max={30}
-                value={options.width}
-                onChange={(e) => update('width', Number(e.target.value))}
-              />
-              <output>{options.width}%</output>
-            </span>
-          </label>
-
-          <label className="control">
-            <span>Border color</span>
-            <span className="row">
-              <input
-                type="color"
-                value={options.color}
-                onChange={(e) => update('color', e.target.value)}
-              />
-              <code>{options.color}</code>
-            </span>
-          </label>
-
-          <label className="control">
-            <span>Corner radius</span>
-            <span className="row">
-              <input
-                type="range"
-                min={0}
-                max={300}
-                value={options.radius}
-                onChange={(e) => update('radius', Number(e.target.value))}
-              />
-              <output>{options.radius}px</output>
-            </span>
-          </label>
-        </>
-      )}
-
-      {show('layout') && (
-        <>
-          <fieldset className="control">
-            <legend>Aspect ratio</legend>
-            <label className="radio">
-              <input
-                type="radio"
-                name="aspect"
-                checked={options.aspect === 'original'}
-                onChange={() => update('aspect', 'original')}
-              />
-              Original
-            </label>
-            <label className="radio">
-              <input
-                type="radio"
-                name="aspect"
-                checked={options.aspect === 'square'}
-                onChange={() => update('aspect', 'square')}
-              />
-              Square (1:1)
-            </label>
-            <label className="radio">
-              <input
-                type="radio"
-                name="aspect"
-                checked={options.aspect === 'instagram'}
-                onChange={() => update('aspect', 'instagram')}
-              />
-              Instagram vertical (4:5)
-            </label>
-          </fieldset>
-
-          <fieldset className="control">
-            <legend>Placement</legend>
-            <label className="radio">
-              <input
-                type="radio"
-                name="placement"
-                checked={options.placement === 'outer'}
-                onChange={() => update('placement', 'outer')}
-              />
-              Outer (expands canvas)
-            </label>
-            <label className="radio">
-              <input
-                type="radio"
-                name="placement"
-                checked={options.placement === 'inner'}
-                onChange={() => update('placement', 'inner')}
-              />
-              Inner (overlays image)
-            </label>
-          </fieldset>
-        </>
-      )}
-
-      {show('second') && (
-        <>
-          <fieldset className="control">
-            <legend>
-              <label className="checkbox">
-                <input
-                  type="checkbox"
-                  checked={options.second.enabled}
-                  onChange={(e) => updateSecond('enabled', e.target.checked)}
-                />
-                Second border (inside)
-              </label>
-            </legend>
-            {options.second.enabled && (
-              <>
-                <label className="control">
-                  <span>Second border width</span>
-                  <span className="row">
-                    <input
-                      type="range"
-                      min={1}
-                      max={30}
-                      value={options.second.width}
-                      onChange={(e) => updateSecond('width', Number(e.target.value))}
-                    />
-                    <output>{options.second.width}%</output>
-                  </span>
-                </label>
-                <label className="control">
-                  <span>Second border color</span>
-                  <span className="row">
-                    <input
-                      type="color"
-                      value={options.second.color}
-                      onChange={(e) => updateSecond('color', e.target.value)}
-                    />
-                    <code>{options.second.color}</code>
-                  </span>
-                </label>
-              </>
-            )}
-          </fieldset>
-        </>
-      )}
-    </>
-  )
-}
-
-function useDebouncedValue<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay)
-    return () => clearTimeout(timer)
-  }, [value, delay])
-  return debounced
-}
+import {
+  DEFAULTS,
+  EXPORT_MAX_DIMENSION,
+  PREVIEW_MAX_DIMENSION,
+  RENDER_DEBOUNCE_MS,
+} from './lib/config'
+import { buildCameraSegments, type CameraMetadata } from './lib/exif'
+import { useDebouncedValue } from './hooks/useDebouncedValue'
+import { Controls, type ControlTab } from './components/Controls'
+import { Dropzone } from './components/Dropzone'
+import { MobileDrawer } from './components/MobileDrawer'
 
 function App() {
   const [source, setSource] = useState<string | null>(null)
@@ -201,8 +24,8 @@ function App() {
   const [dragOver, setDragOver] = useState(false)
   const [tab, setTab] = useState<ControlTab>('border')
   const [drawerOpen, setDrawerOpen] = useState(true)
+  const [cameraSegments, setCameraSegments] = useState<string[] | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
   const sourceRef = useRef<string | null>(null)
   const renderOptions = useDebouncedValue(options, RENDER_DEBOUNCE_MS)
 
@@ -229,9 +52,13 @@ function App() {
   useEffect(() => {
     if (!image) return
     try {
-      const { canvas, width, height } = renderBorder(image, renderOptions, {
-        maxDimension: PREVIEW_MAX_DIMENSION,
-      })
+      const segments = renderOptions.showInfo ? cameraSegments : null
+      const { canvas, width, height } = renderBorder(
+        image,
+        renderOptions,
+        { maxDimension: PREVIEW_MAX_DIMENSION },
+        segments,
+      )
       const target = canvasRef.current
       if (!target) return
       target.width = canvas.width
@@ -245,24 +72,34 @@ function App() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to render the border')
     }
-  }, [image, renderOptions])
+  }, [image, renderOptions, cameraSegments])
 
-  const handleFile = (file: File | undefined | null) => {
+  const handleFile = (file: File | null) => {
     if (!file || !file.type.startsWith('image/')) return
     setError(null)
     const url = URL.createObjectURL(file)
     if (sourceRef.current) URL.revokeObjectURL(sourceRef.current)
     sourceRef.current = url
     setSource(url)
+    setCameraSegments(null)
+    exifr
+      .parse(file, { pick: ['Make', 'Model', 'ExposureTime', 'FNumber', 'ISO'] })
+      .then((meta) =>
+        setCameraSegments(buildCameraSegments((meta ?? {}) as CameraMetadata)),
+      )
+      .catch(() => setCameraSegments(null))
   }
 
   const handleDownload = () => {
     if (!image) return
     try {
-      const { canvas } = renderBorder(image, options, {
-        maxDimension: EXPORT_MAX_DIMENSION,
-        dpr: 1,
-      })
+      const segments = options.showInfo ? cameraSegments : null
+      const { canvas } = renderBorder(
+        image,
+        options,
+        { maxDimension: EXPORT_MAX_DIMENSION, dpr: 1 },
+        segments,
+      )
       canvas.toBlob((blob) => {
         if (!blob) return
         const url = URL.createObjectURL(blob)
@@ -288,36 +125,19 @@ function App() {
   return (
     <main className="app">
       <header>
-        <h1>Border</h1>
+        <h1>
+          <img src={logo} alt="Border logo" className="logo" />
+          Border
+        </h1>
         <p>Add a border to an image — everything runs locally in your browser.</p>
       </header>
 
-      <section
-        className={`dropzone ${dragOver ? 'dropzone--over' : ''}`}
-        onDragOver={(e) => {
-          e.preventDefault()
-          setDragOver(true)
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault()
-          setDragOver(false)
-          handleFile(e.dataTransfer.files[0])
-        }}
-        onClick={() => inputRef.current?.click()}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={(e) => {
-            handleFile(e.target.files?.[0])
-            e.target.value = ''
-          }}
-        />
-        <p>{source ? 'Replace image' : 'Drop an image here, or click to browse'}</p>
-      </section>
+      <Dropzone
+        source={source}
+        dragOver={dragOver}
+        onDragOver={setDragOver}
+        onFile={handleFile}
+      />
 
       {error && <p className="error">{error}</p>}
 
@@ -328,6 +148,7 @@ function App() {
               options={options}
               update={update}
               updateSecond={updateSecond}
+              cameraSegments={cameraSegments}
             />
             <button type="button" className="download" onClick={handleDownload}>
               Download PNG
@@ -343,56 +164,21 @@ function App() {
             <canvas ref={canvasRef} />
           </figure>
 
-          <div className="mobile-drawer">
-            <nav className="tabs">
-              <button
-                type="button"
-                className="tabs__toggle"
-                aria-label={drawerOpen ? 'Collapse controls' : 'Expand controls'}
-                onClick={() => setDrawerOpen((open) => !open)}
-              >
-                <svg
-                  className={`tabs__chevron ${drawerOpen ? 'tabs__chevron--up' : ''}`}
-                  viewBox="0 0 16 16"
-                  width="16"
-                  height="16"
-                >
-                  <path d="M8 11 3 6h10z" />
-                </svg>
-              </button>
-              {TABS.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={`tab ${tab === t.id ? 'tab--active' : ''}`}
-                  onClick={() => {
-                    setTab(t.id)
-                    setDrawerOpen(true)
-                  }}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </nav>
-            {drawerOpen && (
-              <div className="drawer-body">
-                <Controls
-                  options={options}
-                  update={update}
-                  updateSecond={updateSecond}
-                  tab={tab}
-                />
-                <button type="button" className="download" onClick={handleDownload}>
-                  Download PNG
-                </button>
-                {size && (
-                  <p className="size">
-                    Output: {size.width} × {size.height}px
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
+          <MobileDrawer
+            tab={tab}
+            onTabChange={(t) => {
+              setTab(t)
+              setDrawerOpen(true)
+            }}
+            open={drawerOpen}
+            onToggleOpen={() => setDrawerOpen((open) => !open)}
+            options={options}
+            update={update}
+            updateSecond={updateSecond}
+            cameraSegments={cameraSegments}
+            onDownload={handleDownload}
+            size={size}
+          />
         </div>
       )}
     </main>
