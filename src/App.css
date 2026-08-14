@@ -4,7 +4,10 @@
   padding: 40px 24px 64px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+}
+
+.app > * + *:not(:first-child) {
+  margin-top: 24px;
 }
 
 header {
@@ -80,7 +83,10 @@ header p {
   padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+}
+
+.controls > * + *:not(:first-child) {
+  margin-top: 18px;
 }
 
 .controls-section + .controls-section {
@@ -91,7 +97,10 @@ header p {
 .controls-section {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+}
+
+.controls-section > * + *:not(:first-child) {
+  margin-top: 18px;
 }
 
 .controls-heading {
@@ -113,7 +122,6 @@ header p {
 .control {
   display: flex;
   flex-direction: column;
-  gap: 8px;
   font-size: 14px;
   color: var(--muted);
   border: 0;
@@ -121,9 +129,12 @@ header p {
   padding: 0;
 }
 
+.control > * + *:not(:first-child) {
+  margin-top: 8px;
+}
+
 .control legend {
   padding: 0;
-  margin-bottom: 8px;
 }
 
 .row {
@@ -312,7 +323,10 @@ header p {
     padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+  }
+
+  .drawer-body > * + *:not(:first-child) {
+    margin-top: 18px;
   }
 }
 
