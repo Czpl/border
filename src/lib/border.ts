@@ -2,7 +2,7 @@ export type Placement = 'outer' | 'inner'
 
 export type AspectRatio = 'original' | 'square' | 'instagram' | 'story' | 'polaroid'
 
-export type EffectId = 'polaroid' | 'light-leak' | 'flare'
+export type EffectId = 'polaroid' | 'light-leak' | 'flare' | 'film'
 
 export type InfoFontFamily = 'sans' | 'serif' | 'mono'
 
@@ -328,6 +328,90 @@ function drawFlare(
   ctx.restore()
 }
 
+const FILM_BLACK = '#0d0d0d'
+
+function drawFilmFrame(
+  ctx: CanvasRenderingContext2D,
+  stripH: number,
+  edgeW: number,
+  px: number,
+  py: number,
+  pw: number,
+  ph: number,
+  holeColor: string,
+  vertical: boolean,
+) {
+  ctx.fillStyle = FILM_BLACK
+  if (vertical) {
+    ctx.fillRect(px - stripH, py - edgeW, stripH, ph + edgeW * 2)
+    ctx.fillRect(px + pw, py - edgeW, stripH, ph + edgeW * 2)
+    ctx.fillRect(px - stripH, py - edgeW, pw + stripH * 2, edgeW)
+    ctx.fillRect(px - stripH, py + ph, pw + stripH * 2, edgeW)
+  } else {
+    ctx.fillRect(px - edgeW, py - stripH, pw + edgeW * 2, stripH)
+    ctx.fillRect(px - edgeW, py + ph, pw + edgeW * 2, stripH)
+    ctx.fillRect(px - edgeW, py, edgeW, ph)
+    ctx.fillRect(px + pw, py, edgeW, ph)
+  }
+
+  const holePerp = Math.round(stripH * 0.4)
+  const holeAlong = Math.round(holePerp * 1.55)
+  const gapRef = Math.max(2, Math.round(holeAlong * 0.75))
+  const runLen = vertical ? ph : pw
+  const count = Math.max(
+    1,
+    Math.round((runLen + gapRef) / (holeAlong + gapRef)),
+  )
+  const gap = count > 1 ? (runLen - count * holeAlong) / (count - 1) : 0
+  const startAlong = count > 1 ? 0 : (runLen - holeAlong) / 2
+  const holeGap = Math.round(stripH * 0.14)
+
+  ctx.fillStyle = holeColor
+  for (let i = 0; i < count; i++) {
+    const along = startAlong + i * (holeAlong + gap)
+    if (vertical) {
+      ctx.beginPath()
+      ctx.roundRect(px - holeGap - holePerp, py + along, holePerp, holeAlong, holePerp * 0.4)
+      ctx.fill()
+      ctx.beginPath()
+      ctx.roundRect(px + pw + holeGap, py + along, holePerp, holeAlong, holePerp * 0.4)
+      ctx.fill()
+    } else {
+      ctx.beginPath()
+      ctx.roundRect(px + along, py - holeGap - holePerp, holeAlong, holePerp, holePerp * 0.4)
+      ctx.fill()
+      ctx.beginPath()
+      ctx.roundRect(px + along, py + ph + holeGap, holeAlong, holePerp, holePerp * 0.4)
+      ctx.fill()
+    }
+  }
+
+  const fontSize = Math.max(9, Math.round(stripH * 0.24))
+  ctx.fillStyle = '#ff9a00'
+  ctx.font = `700 ${fontSize}px "Helvetica Neue", Arial, sans-serif`
+  ctx.textBaseline = 'middle'
+
+  if (vertical) {
+    ctx.save()
+    ctx.translate(px - stripH + Math.round(stripH * 0.3), py + ph / 2)
+    ctx.rotate(-Math.PI / 2)
+    ctx.textAlign = 'left'
+    ctx.fillText('KODAK PORTRA 800', 0, 0)
+    ctx.restore()
+  } else {
+    const pad = Math.max(6, Math.round(edgeW * 1.2))
+    const textY = py - stripH + Math.round(stripH * 0.28)
+    ctx.textAlign = 'left'
+    ctx.fillText('KODAK PORTRA 800', px - edgeW + pad, textY)
+    ctx.textAlign = 'right'
+    ctx.fillText(
+      '800  250D  36 EXP',
+      px - edgeW + pw + edgeW * 2 - pad,
+      textY,
+    )
+  }
+}
+
 export function renderBorder(
   image: HTMLImageElement,
   options: BorderOptions,
@@ -357,20 +441,40 @@ export function renderBorder(
   const contentH =
     placement === 'outer' ? imgH + topPx + bottomPx + 2 * secondPx : imgH
 
-  let canvasW = contentW
-  let canvasH = contentH
+  const filmActive = effects.includes('film')
+  const filmStripH = filmActive
+    ? Math.max(20, Math.round(Math.min(imgW, imgH) * 0.09))
+    : 0
+  const filmEdgeW = filmActive
+    ? Math.max(10, Math.round(Math.min(imgW, imgH) * 0.028))
+    : 0
+  const filmVertical = filmActive && imgH > imgW
+  const filmBandX = filmVertical ? filmStripH : filmEdgeW
+  const filmBandY = filmVertical ? filmEdgeW : filmStripH
+  const frameW = contentW + filmBandX * 2
+  const frameH = contentH + filmBandY * 2
+
+  const visibleX = leftPx + secondPx
+  const visibleY = topPx + secondPx
+  const visibleW =
+    placement === 'outer' ? imgW : imgW - leftPx - rightPx - 2 * secondPx
+  const visibleH =
+    placement === 'outer' ? imgH : imgH - topPx - bottomPx - 2 * secondPx
+
+  let canvasW = frameW
+  let canvasH = frameH
   if (aspect !== 'original') {
     const ratio = ASPECT_RATIOS[aspect]
-    if (contentW / contentH > ratio) {
-      canvasW = contentW
-      canvasH = Math.round(contentW / ratio)
+    if (frameW / frameH > ratio) {
+      canvasW = frameW
+      canvasH = Math.round(frameW / ratio)
     } else {
-      canvasW = Math.round(contentH * ratio)
-      canvasH = contentH
+      canvasW = Math.round(frameH * ratio)
+      canvasH = frameH
     }
   }
-  const offsetX = Math.round((canvasW - contentW) / 2)
-  const offsetY = Math.round((canvasH - contentH) / 2)
+  const offsetX = Math.round((canvasW - frameW) / 2)
+  const offsetY = Math.round((canvasH - frameH) / 2)
 
   const scale = computeScale(canvasW, canvasH, limits)
 
@@ -393,6 +497,13 @@ export function renderBorder(
     ctx.fill()
   }
   ctx.translate(offsetX, offsetY)
+
+  if (filmActive) {
+    ctx.fillStyle = color
+    ctx.fillRect(0, 0, frameW, frameH)
+  }
+  ctx.save()
+  ctx.translate(filmBandX, filmBandY)
 
   if (placement === 'outer') {
     ctx.beginPath()
@@ -447,17 +558,6 @@ export function renderBorder(
   }
 
   if (effects.length > 0) {
-    const visibleX = leftPx + secondPx
-    const visibleY = topPx + secondPx
-    const visibleW =
-      placement === 'outer'
-        ? imgW
-        : imgW - leftPx - rightPx - 2 * secondPx
-    const visibleH =
-      placement === 'outer'
-        ? imgH
-        : imgH - topPx - bottomPx - 2 * secondPx
-
     if (effects.includes('polaroid')) {
       drawFrameShadow(
         ctx,
@@ -488,6 +588,22 @@ export function renderBorder(
       textColorFor(color),
     )
   }
+
+  if (filmActive) {
+    drawFilmFrame(
+      ctx,
+      filmStripH,
+      filmEdgeW,
+      visibleX,
+      visibleY,
+      visibleW,
+      visibleH,
+      color,
+      filmVertical,
+    )
+  }
+
+  ctx.restore()
 
   return { canvas, width: canvasW, height: canvasH }
 }

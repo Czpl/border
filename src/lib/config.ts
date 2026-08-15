@@ -86,6 +86,7 @@ export const EFFECTS: BorderEffect[] = [
   { id: 'polaroid', label: 'Polaroid frame shadow' },
   { id: 'light-leak', label: 'Orange light leak' },
   { id: 'flare', label: 'Orange-red optical flare' },
+  { id: 'film', label: '35mm Fauxtra 800' },
 ]
 
 export const RENDER_DEBOUNCE_MS = 150
