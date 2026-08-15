@@ -14,7 +14,7 @@ import { useDebouncedValue } from './hooks/useDebouncedValue'
 import { Controls, type ControlTab } from './components/Controls'
 import { Dropzone } from './components/Dropzone'
 import { MobileDrawer } from './components/MobileDrawer'
-import type { BorderPreset } from './lib/config'
+import type { BorderEffect, BorderPreset } from './lib/config'
 
 function App() {
   const [source, setSource] = useState<string | null>(null)
@@ -126,12 +126,24 @@ function App() {
   const applyPreset = (preset: BorderPreset) => {
     setOptions((prev) => ({
       ...prev,
+      effects: [...preset.effects],
       width: preset.width,
       color: preset.color,
       second: { ...preset.second },
       bottomWidth: preset.bottomWidth ?? preset.width,
       aspect: preset.aspect ?? prev.aspect,
       placement: preset.placement ?? prev.placement,
+    }))
+  }
+
+  const toggleEffect = (effect: BorderEffect, enabled: boolean) => {
+    setOptions((prev) => ({
+      ...prev,
+      effects: enabled
+        ? prev.effects.includes(effect.id)
+          ? prev.effects
+          : [...prev.effects, effect.id]
+        : prev.effects.filter((id) => id !== effect.id),
     }))
   }
 
@@ -163,6 +175,7 @@ function App() {
               update={update}
               updateSecond={updateSecond}
               applyPreset={applyPreset}
+              applyEffect={toggleEffect}
               cameraSegments={cameraSegments}
             />
             <button type="button" className="download" onClick={handleDownload}>
@@ -191,6 +204,7 @@ function App() {
             update={update}
             updateSecond={updateSecond}
             applyPreset={applyPreset}
+            applyEffect={toggleEffect}
             cameraSegments={cameraSegments}
             onDownload={handleDownload}
             onFile={handleFile}

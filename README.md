@@ -11,6 +11,7 @@ A local-first tool for adding borders to images. Everything runs in your browser
 - Outer placement (expands the canvas) or inner placement (overlays the image)
 - Output aspect ratios: original, square (1:1), Instagram vertical (4:5), Instagram story (9:16), and Polaroid (14:17)
 - Presets including a Polaroid frame with a wide bottom band
+- Stackable effects: a frame shadow cast onto the photo and a procedural orange light leak
 - Read EXIF data (camera, aperture, shutter speed, ISO) and render it on the border
 - Camera info text with configurable font size, font family, separator, and alignment
 - Responsive UI: sidebar controls on desktop, tabbed bottom drawer on mobile

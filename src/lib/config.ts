@@ -1,6 +1,7 @@
 import type {
   AspectRatio,
   BorderOptions,
+  EffectId,
   InfoAlign,
   InfoFontFamily,
   Placement,
@@ -12,6 +13,7 @@ export const DEFAULTS: BorderOptions = {
   placement: 'outer',
   aspect: 'original',
   second: { enabled: false, width: 1, color: '#000000' },
+  effects: [],
   showInfo: false,
   infoFontSize: 50,
   infoFontFamily: 'mono',
@@ -34,6 +36,7 @@ export interface BorderPreset {
   bottomWidth?: number
   aspect?: AspectRatio
   placement?: Placement
+  effects: EffectId[]
 }
 
 export const PRESETS: BorderPreset[] = [
@@ -43,6 +46,7 @@ export const PRESETS: BorderPreset[] = [
     width: 10,
     color: '#ffffff',
     second: { enabled: false, width: 1, color: '#000000' },
+    effects: [],
   },
   {
     id: 'classic',
@@ -50,6 +54,7 @@ export const PRESETS: BorderPreset[] = [
     width: 10,
     color: '#ffffff',
     second: { enabled: true, width: 1, color: '#000000' },
+    effects: [],
   },
   {
     id: 'classic-inverted',
@@ -57,6 +62,7 @@ export const PRESETS: BorderPreset[] = [
     width: 10,
     color: '#000000',
     second: { enabled: true, width: 1, color: '#ffffff' },
+    effects: [],
   },
   {
     id: 'polaroid',
@@ -67,7 +73,19 @@ export const PRESETS: BorderPreset[] = [
     bottomWidth: 40,
     aspect: 'polaroid',
     placement: 'outer',
+    effects: ['polaroid'],
   },
+]
+
+export interface BorderEffect {
+  id: EffectId
+  label: string
+}
+
+export const EFFECTS: BorderEffect[] = [
+  { id: 'polaroid', label: 'Polaroid frame shadow' },
+  { id: 'light-leak', label: 'Orange light leak' },
+  { id: 'flare', label: 'Orange-red optical flare' },
 ]
 
 export const RENDER_DEBOUNCE_MS = 150

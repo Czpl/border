@@ -1,12 +1,12 @@
-import { ALIGNS, FONT_FAMILIES, PRESETS, SEPARATORS } from '../lib/config'
-import type { BorderPreset } from '../lib/config'
+import { ALIGNS, EFFECTS, FONT_FAMILIES, PRESETS, SEPARATORS } from '../lib/config'
+import type { BorderEffect, BorderPreset } from '../lib/config'
 import type {
   BorderOptions,
   InfoFontFamily,
   SecondBorder,
 } from '../lib/border'
 
-export type ControlTab = 'border' | 'layout' | 'second' | 'text'
+export type ControlTab = 'border' | 'layout' | 'second' | 'text' | 'effects'
 
 export type UpdateOption = <K extends keyof BorderOptions>(
   key: K,
@@ -20,11 +20,14 @@ export type UpdateSecond = <K extends keyof SecondBorder>(
 
 export type ApplyPreset = (preset: BorderPreset) => void
 
+export type ApplyEffect = (effect: BorderEffect, enabled: boolean) => void
+
 interface ControlsProps {
   options: BorderOptions
   update: UpdateOption
   updateSecond: UpdateSecond
   applyPreset: ApplyPreset
+  applyEffect: ApplyEffect
   cameraSegments: string[] | null
   tab?: ControlTab
 }
@@ -34,6 +37,7 @@ export function Controls({
   update,
   updateSecond,
   applyPreset,
+  applyEffect,
   cameraSegments,
   tab,
 }: ControlsProps) {
@@ -97,6 +101,25 @@ export function Controls({
           </label>
 
           </div>
+      )}
+
+      {show('effects') && (
+        <div className="controls-section">
+          <h2 className="controls-heading">Effects</h2>
+          <fieldset className="control">
+            <legend>Effect</legend>
+            {EFFECTS.map((e) => (
+              <label className="checkbox" key={e.id}>
+                <input
+                  type="checkbox"
+                  checked={options.effects.includes(e.id)}
+                  onChange={(ev) => applyEffect(e, ev.target.checked)}
+                />
+                {e.label}
+              </label>
+            ))}
+          </fieldset>
+        </div>
       )}
 
       {show('layout') && (

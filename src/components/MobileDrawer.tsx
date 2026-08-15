@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import type { BorderOptions } from '../lib/border'
 import {
   Controls,
+  type ApplyEffect,
   type ApplyPreset,
   type ControlTab,
   type UpdateOption,
@@ -10,6 +11,7 @@ import {
 
 const TABS: { id: ControlTab; label: string }[] = [
   { id: 'border', label: 'Border' },
+  { id: 'effects', label: 'Effects' },
   { id: 'second', label: 'Border (inner)' },
   { id: 'layout', label: 'Layout' },
   { id: 'text', label: 'Camera info' },
@@ -24,6 +26,7 @@ interface MobileDrawerProps {
   update: UpdateOption
   updateSecond: UpdateSecond
   applyPreset: ApplyPreset
+  applyEffect: ApplyEffect
   cameraSegments: string[] | null
   onDownload: () => void
   onFile: (file: File | null) => void
@@ -39,6 +42,7 @@ export function MobileDrawer({
   update,
   updateSecond,
   applyPreset,
+  applyEffect,
   cameraSegments,
   onDownload,
   onFile,
@@ -81,6 +85,7 @@ export function MobileDrawer({
             update={update}
             updateSecond={updateSecond}
             applyPreset={applyPreset}
+            applyEffect={applyEffect}
             cameraSegments={cameraSegments}
             tab={tab}
           />
