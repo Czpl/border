@@ -47,7 +47,8 @@ export function Controls({
       p.color.toLowerCase() === options.color.toLowerCase() &&
       p.second.enabled === options.second.enabled &&
       p.second.width === options.second.width &&
-      p.second.color.toLowerCase() === options.second.color.toLowerCase(),
+      p.second.color.toLowerCase() === options.second.color.toLowerCase() &&
+      (p.bottomWidth ?? p.width) === (options.bottomWidth ?? options.width),
   )?.id
 
   return (
@@ -138,6 +139,15 @@ export function Controls({
                 onChange={() => update('aspect', 'story')}
               />
               Instagram story (9:16)
+            </label>
+            <label className="radio">
+              <input
+                type="radio"
+                name={radioName('aspect')}
+                checked={options.aspect === 'polaroid'}
+                onChange={() => update('aspect', 'polaroid')}
+              />
+              Polaroid (14:17)
             </label>
           </fieldset>
 

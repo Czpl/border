@@ -1,6 +1,6 @@
 export type Placement = 'outer' | 'inner'
 
-export type AspectRatio = 'original' | 'square' | 'instagram' | 'story'
+export type AspectRatio = 'original' | 'square' | 'instagram' | 'story' | 'polaroid'
 
 export type InfoFontFamily = 'sans' | 'serif' | 'mono'
 
@@ -18,6 +18,7 @@ export interface BorderOptions {
   placement: Placement
   aspect: AspectRatio
   second: SecondBorder
+  bottomWidth?: number
   showInfo: boolean
   infoFontSize: number
   infoFontFamily: InfoFontFamily
@@ -42,6 +43,7 @@ const ASPECT_RATIOS: Record<Exclude<AspectRatio, 'original'>, number> = {
   square: 1,
   instagram: 4 / 5,
   story: 9 / 16,
+  polaroid: 14 / 17,
 }
 
 function computeScale(canvasW: number, canvasH: number, limits?: RenderLimits) {
@@ -73,13 +75,14 @@ function drawInfoText(
   contentW: number,
   contentH: number,
   borderPx: number,
+  bottomPx: number,
   segments: string[],
   options: BorderOptions,
   textColor: string,
 ) {
   const maxWidth = contentW - 2 * borderPx
   const family = FONT_FAMILIES[options.infoFontFamily]
-  const fontSize = Math.max(10, borderPx * (options.infoFontSize / 100))
+  const fontSize = Math.max(10, Math.max(borderPx, bottomPx) * (options.infoFontSize / 100))
   const joined = segments.join(` ${options.infoSeparator} `)
 
   const applyFont = (size: number) => {
@@ -99,7 +102,7 @@ function drawInfoText(
 
   ctx.fillStyle = textColor
   ctx.textBaseline = 'middle'
-  const midY = contentH - borderPx / 2
+  const midY = contentH - bottomPx / 2
 
   if (options.infoAlign === 'space') {
     const widths = segments.map((s) => ctx.measureText(s).width)
@@ -133,13 +136,20 @@ export function renderBorder(
   const imgW = image.naturalWidth
   const imgH = image.naturalHeight
   const borderPx = Math.round(Math.min(imgW, imgH) * (widthPercent / 100))
+  const bottomPx =
+    options.bottomWidth != null
+      ? Math.round(Math.min(imgW, imgH) * (options.bottomWidth / 100))
+      : borderPx
   const secondPx = second.enabled
     ? Math.round(Math.min(imgW, imgH) * (second.width / 100))
     : 0
-  const totalPx = borderPx + secondPx
 
-  const contentW = placement === 'outer' ? imgW + 2 * totalPx : imgW
-  const contentH = placement === 'outer' ? imgH + 2 * totalPx : imgH
+  const leftPx = borderPx
+  const rightPx = borderPx
+  const topPx = borderPx
+
+  const contentW = placement === 'outer' ? imgW + leftPx + rightPx : imgW
+  const contentH = placement === 'outer' ? imgH + topPx + bottomPx : imgH
 
   let canvasW = contentW
   let canvasH = contentH
@@ -186,18 +196,18 @@ export function renderBorder(
 
     if (secondPx > 0) {
       ctx.beginPath()
-      ctx.rect(borderPx, borderPx, imgW + 2 * secondPx, imgH + 2 * secondPx)
-      ctx.rect(totalPx, totalPx, imgW, imgH)
+      ctx.rect(leftPx, topPx, imgW + 2 * secondPx, imgH + 2 * secondPx)
+      ctx.rect(leftPx + secondPx, topPx + secondPx, imgW, imgH)
       ctx.fillStyle = second.color
       ctx.fill('evenodd')
     }
 
-    ctx.drawImage(image, totalPx, totalPx, imgW, imgH)
+    ctx.drawImage(image, leftPx + secondPx, topPx + secondPx, imgW, imgH)
   } else {
-    const innerX = totalPx
-    const innerY = totalPx
-    const innerW = imgW - 2 * totalPx
-    const innerH = imgH - 2 * totalPx
+    const innerX = leftPx + secondPx
+    const innerY = topPx + secondPx
+    const innerW = imgW - leftPx - rightPx - 2 * secondPx
+    const innerH = imgH - topPx - bottomPx - 2 * secondPx
 
     if (innerW <= 0 || innerH <= 0) {
       throw new Error('Border width exceeds image dimensions')
@@ -207,17 +217,22 @@ export function renderBorder(
 
     ctx.beginPath()
     ctx.rect(0, 0, contentW, contentH)
-    ctx.rect(borderPx, borderPx, contentW - 2 * borderPx, contentH - 2 * borderPx)
+    ctx.rect(
+      leftPx,
+      topPx,
+      contentW - leftPx - rightPx,
+      contentH - topPx - bottomPx,
+    )
     ctx.fillStyle = color
     ctx.fill('evenodd')
 
     if (secondPx > 0) {
       ctx.beginPath()
       ctx.rect(
-        borderPx,
-        borderPx,
-        contentW - 2 * borderPx,
-        contentH - 2 * borderPx,
+        leftPx,
+        topPx,
+        contentW - leftPx - rightPx,
+        contentH - topPx - bottomPx,
       )
       ctx.rect(innerX, innerY, innerW, innerH)
       ctx.fillStyle = second.color
@@ -231,6 +246,7 @@ export function renderBorder(
       contentW,
       contentH,
       borderPx,
+      bottomPx,
       segments,
       options,
       textColorFor(color),

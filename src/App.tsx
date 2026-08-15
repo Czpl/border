@@ -129,6 +129,9 @@ function App() {
       width: preset.width,
       color: preset.color,
       second: { ...preset.second },
+      bottomWidth: preset.bottomWidth ?? preset.width,
+      aspect: preset.aspect ?? prev.aspect,
+      placement: preset.placement ?? prev.placement,
     }))
   }
 

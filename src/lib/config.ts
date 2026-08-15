@@ -1,4 +1,10 @@
-import type { BorderOptions, InfoAlign, InfoFontFamily } from './border'
+import type {
+  AspectRatio,
+  BorderOptions,
+  InfoAlign,
+  InfoFontFamily,
+  Placement,
+} from './border'
 
 export const DEFAULTS: BorderOptions = {
   width: 10,
@@ -13,7 +19,11 @@ export const DEFAULTS: BorderOptions = {
   infoAlign: 'center',
 }
 
-export type BorderPresetId = 'default' | 'classic' | 'classic-inverted'
+export type BorderPresetId =
+  | 'default'
+  | 'classic'
+  | 'classic-inverted'
+  | 'polaroid'
 
 export interface BorderPreset {
   id: BorderPresetId
@@ -21,6 +31,9 @@ export interface BorderPreset {
   width: number
   color: string
   second: { enabled: boolean; width: number; color: string }
+  bottomWidth?: number
+  aspect?: AspectRatio
+  placement?: Placement
 }
 
 export const PRESETS: BorderPreset[] = [
@@ -44,6 +57,16 @@ export const PRESETS: BorderPreset[] = [
     width: 10,
     color: '#000000',
     second: { enabled: true, width: 1, color: '#ffffff' },
+  },
+  {
+    id: 'polaroid',
+    label: 'Polaroid',
+    width: 7,
+    color: '#ffffff',
+    second: { enabled: false, width: 1, color: '#000000' },
+    bottomWidth: 40,
+    aspect: 'polaroid',
+    placement: 'outer',
   },
 ]
 
