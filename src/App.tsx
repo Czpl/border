@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import exifr from 'exifr'
 import './App.css'
 import logo from './assets/logo.svg'
+import portraFrameUrl from './assets/portraframe.png'
 import { renderBorder, type BorderOptions, type SecondBorder } from './lib/border'
 import {
   DEFAULTS,
@@ -26,6 +27,7 @@ function App() {
   const [tab, setTab] = useState<ControlTab>('border')
   const [drawerOpen, setDrawerOpen] = useState(true)
   const [cameraSegments, setCameraSegments] = useState<string[] | null>(null)
+  const [portraFrame, setPortraFrame] = useState<HTMLImageElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const sourceRef = useRef<string | null>(null)
   const renderOptions = useDebouncedValue(options, RENDER_DEBOUNCE_MS)
@@ -33,6 +35,15 @@ function App() {
   useEffect(() => {
     return () => {
       if (sourceRef.current) URL.revokeObjectURL(sourceRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    const img = new Image()
+    img.onload = () => setPortraFrame(img)
+    img.src = portraFrameUrl
+    return () => {
+      img.onload = null
     }
   }, [])
 
@@ -59,6 +70,7 @@ function App() {
         renderOptions,
         { maxDimension: PREVIEW_MAX_DIMENSION },
         segments,
+        { portraFrame },
       )
       const target = canvasRef.current
       if (!target) return
@@ -73,7 +85,7 @@ function App() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to render the border')
     }
-  }, [image, renderOptions, cameraSegments])
+  }, [image, renderOptions, cameraSegments, portraFrame])
 
   const handleFile = (file: File | null) => {
     if (!file || !file.type.startsWith('image/')) return
@@ -100,6 +112,7 @@ function App() {
         options,
         { maxDimension: EXPORT_MAX_DIMENSION, dpr: 1 },
         segments,
+        { portraFrame },
       )
       canvas.toBlob((blob) => {
         if (!blob) return

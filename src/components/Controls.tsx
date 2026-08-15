@@ -105,7 +105,9 @@ export function Controls({
 
       {show('effects') && (
         <div className="controls-section">
-          <h2 className="controls-heading">Effects</h2>
+          <h2 className="controls-heading">
+            Effects <span className="badge">experimental</span>
+          </h2>
           <fieldset className="control">
             <legend>Effect</legend>
             {EFFECTS.map((e) => (

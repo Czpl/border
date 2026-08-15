@@ -75,6 +75,7 @@ export function MobileDrawer({
             onClick={() => onTabChange(t.id)}
           >
             {t.label}
+            {t.id === 'effects' && <span className="badge">experimental</span>}
           </button>
         ))}
       </nav>
