@@ -21,10 +21,16 @@ export type SheetGridPreset = '12' | '15' | '20' | '24' | '30' | 'auto'
 
 export type SheetLabelMode = 'index' | 'filename' | 'both'
 
+// How photos are framed inside a grid cell. 'landscape'/'portrait' force every
+// photo into a horizontal/vertical film-frame rectangle (letterboxed, showing
+// the page background); 'original' does today's contain-fit into the cell.
+export type SheetImageOrientation = 'original' | 'landscape' | 'portrait'
+
 export interface SheetOptions {
   format: SheetFormat
   orientation: SheetOrientation
   grid: SheetGridPreset
+  imageOrientation: SheetImageOrientation
   backgroundColor: string
   margin: number
   spacing: number
@@ -91,10 +97,17 @@ export const SHEET_LABEL_MODES: { id: SheetLabelMode; label: string }[] = [
   { id: 'both', label: 'Both' },
 ]
 
+export const SHEET_IMAGE_ORIENTATIONS: { id: SheetImageOrientation; label: string }[] = [
+  { id: 'original', label: 'Keep original' },
+  { id: 'landscape', label: 'All landscape' },
+  { id: 'portrait', label: 'All portrait' },
+]
+
 export const SHEET_DEFAULTS: SheetOptions = {
   format: 'a4',
   orientation: 'portrait',
   grid: '12',
+  imageOrientation: 'landscape',
   backgroundColor: '#ffffff',
   margin: 40,
   spacing: 14,
@@ -161,21 +174,65 @@ export function computeCells(opts: SheetOptions, count: number): CellRect[] {
   return cells
 }
 
-// Fits the tallest/leftover photo inside a cell, reserving `labelH` at the
-// bottom for a caption. Returns the fitted rectangle (top-left origin).
+// Aspect ratios for forced film-frame orientations (36×24mm style).
+const IMAGE_ASPECTS: Record<Exclude<SheetImageOrientation, 'original'>, number> = {
+  landscape: 3 / 2,
+  portrait: 2 / 3,
+}
+
+// The rectangle a photo is placed inside. Forced modes reserve a centered
+// landscape/portrait "frame" within the cell (letterboxed); 'original' uses the
+// whole cell width and the height above the label.
+function cellFrame(
+  cell: CellRect,
+  labelH: number,
+  imageOrientation: SheetImageOrientation,
+): CellRect {
+  const areaW = cell.w
+  const areaH = cell.h - labelH
+  if (imageOrientation === 'original') {
+    return { x: cell.x, y: cell.y, w: areaW, h: areaH }
+  }
+  const aspect = IMAGE_ASPECTS[imageOrientation]
+  let w = areaW
+  let h = w / aspect
+  if (h > areaH) {
+    h = areaH
+    w = h * aspect
+  }
+  return { x: cell.x + (areaW - w) / 2, y: cell.y + (areaH - h) / 2, w, h }
+}
+
+// Fits the photo inside its frame, reserving `labelH` at the bottom for a
+// caption. When the forced orientation doesn't match the photo's own aspect,
+// the photo is rotated 90° so it actually reads as landscape/portrait instead
+// of being letterboxed. Returns the fitted rectangle (top-left origin) plus
+// whether the photo must be drawn rotated.
 interface ImageFit {
   x: number
   y: number
   w: number
   h: number
+  rotate: boolean
 }
 
-function fitInCell(cell: CellRect, imgW: number, imgH: number, labelH: number): ImageFit {
-  const areaH = cell.h - labelH
-  const scale = Math.min(cell.w / imgW, areaH / imgH)
-  const w = imgW * scale
-  const h = imgH * scale
-  return { x: cell.x + (cell.w - w) / 2, y: cell.y + (areaH - h) / 2, w, h }
+function fitInCell(
+  cell: CellRect,
+  imgW: number,
+  imgH: number,
+  labelH: number,
+  imageOrientation: SheetImageOrientation,
+): ImageFit {
+  const frame = cellFrame(cell, labelH, imageOrientation)
+  const rotate =
+    (imageOrientation === 'landscape' && imgH > imgW) ||
+    (imageOrientation === 'portrait' && imgW > imgH)
+  const dw = rotate ? imgH : imgW
+  const dh = rotate ? imgW : imgH
+  const scale = Math.min(frame.w / dw, frame.h / dh)
+  const w = dw * scale
+  const h = dh * scale
+  return { x: frame.x + (frame.w - w) / 2, y: frame.y + (frame.h - h) / 2, w, h, rotate }
 }
 
 function hexToRgb(hex: string, toRgb: (r: number, g: number, b: number) => RGB): RGB {
@@ -235,8 +292,22 @@ export function renderSheetPreview(images: SheetImage[], opts: SheetOptions): Sh
 
   cells.forEach((cell, i) => {
     const img = images[i]
-    const fit = fitInCell(cell, img.image.naturalWidth, img.image.naturalHeight, labelH)
-    ctx.drawImage(img.image, fit.x, fit.y, fit.w, fit.h)
+    const fit = fitInCell(
+      cell,
+      img.image.naturalWidth,
+      img.image.naturalHeight,
+      labelH,
+      opts.imageOrientation,
+    )
+    if (fit.rotate) {
+      ctx.save()
+      ctx.translate(fit.x + fit.w / 2, fit.y + fit.h / 2)
+      ctx.rotate(Math.PI / 2)
+      ctx.drawImage(img.image, -fit.h / 2, -fit.w / 2, fit.h, fit.w)
+      ctx.restore()
+    } else {
+      ctx.drawImage(img.image, fit.x, fit.y, fit.w, fit.h)
+    }
 
     const text = captionText(opts, img.name, i)
     if (text) {
@@ -261,28 +332,39 @@ export function renderSheetPreview(images: SheetImage[], opts: SheetOptions): Sh
 
 // Rasterizes one photo to a JPEG at ~144dpi (2x page points) so embedded
 // thumbnails stay sharp while the file stays small. EXIF orientation is applied
-// by drawing through the normalized <img> element.
+// by drawing through the normalized <img> element. When `rotate` is set the
+// photo is baked in landscape/portrait orientation so the outer fit rect can be
+// drawn plainly.
 async function embedAsJpeg(
   doc: PDFDocument,
   image: HTMLImageElement,
   backgroundColor: string,
   targetPt: number,
+  rotate: boolean,
 ): Promise<PDFImage> {
+  const nw = image.naturalWidth
+  const nh = image.naturalHeight
+  const dw = rotate ? nh : nw
+  const dh = rotate ? nw : nh
   const px = Math.max(32, Math.round(targetPt * 2))
-  const scale = px / Math.max(image.naturalWidth, image.naturalHeight)
-  const w = Math.max(32, Math.round(image.naturalWidth * scale))
-  const h = Math.max(32, Math.round(image.naturalHeight * scale))
+  const s = px / Math.max(dw, dh)
+  const iw = Math.max(1, Math.round(nw * s))
+  const ih = Math.max(1, Math.round(nh * s))
 
   const canvas = document.createElement('canvas')
-  canvas.width = w
-  canvas.height = h
+  canvas.width = rotate ? ih : iw
+  canvas.height = rotate ? iw : ih
   const ctx = canvas.getContext('2d')
   if (!ctx) {
     throw new Error('Could not acquire 2D canvas context')
   }
   ctx.fillStyle = backgroundColor
-  ctx.fillRect(0, 0, w, h)
-  ctx.drawImage(image, 0, 0, w, h)
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  if (rotate) {
+    ctx.translate(canvas.width / 2, canvas.height / 2)
+    ctx.rotate(Math.PI / 2)
+  }
+  ctx.drawImage(image, rotate ? -iw / 2 : 0, rotate ? -ih / 2 : 0, iw, ih)
 
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, 'image/jpeg', 0.85),
@@ -318,8 +400,20 @@ export async function buildContactSheetPDF(
     for (let i = 0; i < cells.length; i++) {
       const cell = cells[i]
       const img = pageImages[i]
-      const fit = fitInCell(cell, img.image.naturalWidth, img.image.naturalHeight, labelH)
-      const xobj = await embedAsJpeg(doc, img.image, opts.backgroundColor, cell.w)
+      const fit = fitInCell(
+        cell,
+        img.image.naturalWidth,
+        img.image.naturalHeight,
+        labelH,
+        opts.imageOrientation,
+      )
+      const xobj = await embedAsJpeg(
+        doc,
+        img.image,
+        opts.backgroundColor,
+        cell.w,
+        fit.rotate,
+      )
       page.drawImage(xobj, { x: fit.x, y: pageH - (fit.y + fit.h), width: fit.w, height: fit.h })
 
       const text = captionText(opts, img.name, pageIndex * perPage + i)

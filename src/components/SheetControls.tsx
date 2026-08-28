@@ -3,6 +3,7 @@ import {
   SHEET_DEFAULTS,
   SHEET_FORMATS,
   SHEET_GRIDS,
+  SHEET_IMAGE_ORIENTATIONS,
   SHEET_LABEL_MODES,
   SHEET_ORIENTATIONS,
   type SheetOptions,
@@ -82,6 +83,25 @@ export function SheetControls({
                 value={o.id}
                 checked={options.orientation === o.id}
                 onChange={() => update('orientation', o.id)}
+              />
+              {o.label}
+            </label>
+          ))}
+        </fieldset>
+      </div>
+
+      <div className="controls-section">
+        <h2 className="controls-heading">Photos</h2>
+        <fieldset className="control">
+          <legend>Frame orientation</legend>
+          {SHEET_IMAGE_ORIENTATIONS.map((o) => (
+            <label className="radio" key={o.id}>
+              <input
+                type="radio"
+                name={`sheet-image-orientation-${scope}`}
+                value={o.id}
+                checked={options.imageOrientation === o.id}
+                onChange={() => update('imageOrientation', o.id)}
               />
               {o.label}
             </label>
